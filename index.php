@@ -48,7 +48,7 @@ $app->get('/start',function() use ($app,$client){
 
 
 /**
-* This function evaluates the 8 nearby coordinates to a point and tells whether they are safe or  * not for move. (-1,-1) describes a unsafe position i.e, it is either filled currently or in the  * past or out of bounds. 
+* This function evaluates the 8 nearby coordinates to a point and tells whether they are safe or  * not for move. (-1,-1) describes a unsafe position i.e, it is either filled currently or in the  * past or out of bounds. It returns an array with all the postions marked safe or not.
 **/
 function getNearByCoordinates($x,$y,$gridSize,$board){
 	$arr = array(
@@ -89,89 +89,89 @@ function getNearByCoordinates($x,$y,$gridSize,$board){
 	return $arr;
 }
 
-function distance($x,$y,$type,$gridSize,$board)
-{
+/**
+* This function gives the distance to the farthest safe position in a given direction from a given 
+* point.
+**/
+function distance($x,$y,$type,$gridSize,$board){
 	$sum = 0;
+	
 	if( $type == 'top')
-	{
 		for($i=$y;$i<$gridSize && $board[$x][$i]!=1;$i++)
-		{
 			$sum ++;
-		}
-	}
 	if( $type == 'topRight')
-	{
 		for($i=$x,$j=$y;$i<$gridSize && $j<$gridSize && $board[$i][$j]!=1;$i++,$j++)
-		{
 			$sum ++;
-		}
-	}
+
 	if( $type == 'right')
-	{
 		for($i=$x;$i<$gridSize && $board[$i][$y]!=1;$i++)
-		{
 			$sum ++;
-		}
-	}
+
 	if( $type == 'rightBottom')
-	{
 		for($i=$x,$j=$y;$i<$gridSize && $j>=0 && $board[$i][$j]!=1;$i++,$j--)
-		{
 			$sum ++;
-		}
-	}
+
 	if( $type == 'bottom')
-	{
 		for($i=$y;$i>=0 && $board[$x][$i]!=1;$i--)
-		{
 			$sum ++;
-		}
-	}
+
 	if( $type == 'bottomLeft')
-	{
 		for($i=$x,$j=$y;$i>=0 && $j>=0 && $board[$i][$j]!=1;$i--,$j--)
-		{
 			$sum ++;
-		}
-	}
+
 	if( $type == 'left')
-	{
 		for($i=$x;$i>=0 && $board[$i][$y]!=1;$i--)
-		{
 			$sum ++;
-		}
-	}
+
 	if( $type == 'leftTop')
-	{
 		for($i=$x,$j=$y;$i>=0 && $j<$gridSize && $board[$i][$j]!=1;$i--,$j++)
-		{
 			$sum ++;
-		}
-	}
+
 	return $sum;
 }
 
-
-
+/**
+* Play end point gives move corresponding to a opponents move
+* The main logic is to calculate the safe distance in all directions from current position and     * move in a direction with longest length. 
+**/
 $app->get('/play',function() use($app,$client){
 	$move = $app->request->get('m');
+	
 	if(!!$move){
 		$opponentKingPos = $move;
+	
 		$move = explode('|', $move);
+	
 		$board = json_decode($client->get('boardData'));
 		$initData = json_decode($client->get('initData'),true);
+	
 		$ourKingPos = explode('|',$initData['ourKingPos']);
+	
+		//Reflect the oppenent's move in in the board
 		$board[$move[0]-1][$move[1]-1] = 1;
+	
+		//Near by safe coordinates to our position
 		$arr = getNearByCoordinates($ourKingPos[0]-1,$ourKingPos[1]-1,$initData['gridSize'],$board);
 		
+		//Near by safe coordinates to oppponent position
 		$arr2 = getNearByCoordinates($move[0]-1,$move[1]-1,$initData['gridSize'],$board);
 		
 		$maxDistance = 0;
 
+		//If oppenent is next to our position,move over it and the game ends
+
 		$x = $ourKingPos[0]-1;$y = $ourKingPos[1]-1;$ox = $move[0]-1;$oy = $move[1]-1;
 		
-		if(($x == $ox && ($y+1)==$oy) || (($x+1) == $ox && ($y+1) == $oy) || (($x+1) == $ox && $y ==$oy) || (($x+1) == $ox && ($y-1)==$oy) || ($x == $ox && ($y-1) == $oy) || (($x-1) == $ox && ($y-1)==$oy) || (($x-1) == $ox && $y == $oy) || (($x-1) == $ox && ($y+1) == $oy))
-		{
+		if(
+			($x == $ox && ($y+1)==$oy) || 
+			(($x+1) == $ox && ($y+1) == $oy) || 
+			(($x+1) == $ox && $y ==$oy) || 
+			(($x+1) == $ox && ($y-1)==$oy) || 
+			($x == $ox && ($y-1) == $oy) || 
+			(($x-1) == $ox && ($y-1)==$oy) || 
+			(($x-1) == $ox && $y == $oy) || 
+			(($x-1) == $ox && ($y+1) == $oy)
+		){
 			$nextX = $move[0]-1;
 			$nextY = $move[1]-1;
 		}
@@ -189,13 +189,16 @@ $app->get('/play',function() use($app,$client){
 				}
 			}
 		}
+		
 		$board[$nextX][$nextY] = 1;
 		$ourKingPos = ($nextX+1).'|'.($nextY+1);
 		$opponentKingPos = $move[0].'|'.$move[1];
 
+		//save moves and grid in redis
 		$client->set('initData',json_encode(['ourKingPos'=>$ourKingPos,'opponentKingPos'=>$opponentKingPos,'gridSize'=>$initData['gridSize']]));
 
 		$client->set('boardData',json_encode($board));
+		
 		echo json_encode(["m"=>"".$ourKingPos]);	
 	}
 	else
