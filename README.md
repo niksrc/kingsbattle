@@ -49,7 +49,8 @@ coordinates on the board. Bottom left board is 1|1.
 The bot plays defensive and make sure its next move will not lead to it's death or to deadend. The algorithm is a greedy approach and focuses on generating moves to continue moving or wandering on board as much as possible without violating any rule and waiting for our opponent to make a mistake of coming in range so that it can be knocked out or waiting for opponent to run out of possible steps.It is a simple algorithm that increases chances of winning in most cases but not in every case.It works as
 
 1. Calculates valid steps out of 8 possible steps in the neighbourhood and returns valid locations.
-2. From each valid step calculated above maximum distance is calculated and nodes are sorted in descending order.The node with maximum distance is taken as next move.   
+
+2. From each valid step calculated above maximum distance is calculated and nodes are sorted in descending order.The node with maximum distance in clockwise direction is taken as next move.   
 
 ##Authors:
 
